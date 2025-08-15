@@ -1,0 +1,36 @@
+name: Daily Market Newsletter
+
+on:
+  schedule:
+    - cron: '30 6 * * 1-5'  # 06:30 UTC ≈ 07:30 London during BST
+  workflow_dispatch: {}      # lets you run it on-demand
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Europe/London
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install feedparser pyyaml python-dateutil beautifulsoup4 requests markdown
+
+      - name: Inject secrets into config
+        run: |
+          sed -i 's/APP_PASSWORD_HERE/${{ secrets.GMAIL_APP_PASSWORD }}/' config.yaml
+          # Optional (if you enable tweets later):
+          # sed -i 's/YOUR_X_API_BEARER_TOKEN/${{ secrets.X_BEARER_TOKEN }}/' config.yaml || true
+
+      - name: Build newsletter
+        run: python3 newsletter.py
+
+      - name: Upload artifact (HTML/MD output)
+        uses: actions/upload-artifact@v4
+        with:
+          name: newsletter
+          path: out/
