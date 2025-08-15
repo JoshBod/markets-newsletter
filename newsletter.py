@@ -206,7 +206,10 @@ with open('config.yaml','r') as f:
 def main():
     tzname = CONFIG['output'].get('timezone', 'Europe/London')
 
-    # Use UTC for comparisons
+    # NEW: keep a local, timezone-aware timestamp for subject/filenames
+    start = now_tz(tzname)
+
+    # Use UTC for time comparisons to avoid naive/aware issues
     now_utc = datetime.now(tz.tzutc())
     lookback_utc = now_utc - timedelta(hours=CONFIG.get('lookback_hours', 24))
 
@@ -241,7 +244,7 @@ def main():
 
     outdir = CONFIG['output']['directory']
     os.makedirs(outdir, exist_ok=True)
-    date_tag = start.strftime('%Y-%m-%d')
+    date_tag = start.strftime('%Y-%m-%d')  # <-- uses start again
     base = f"{CONFIG['output'].get('filename_prefix','newsletter')}_{date_tag}"
 
     md_path = None
@@ -254,26 +257,17 @@ def main():
     if CONFIG['output'].get('include_html', True):
         if md:
             html = md.markdown(md_text, extensions=['extra', 'toc'])
-            # Simple styling
-            html_text = f"""
-            <html><head><meta charset='utf-8'>
-            <style>
-              body {{ font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }}
-              h1, h2 {{ margin-top: 1.6rem; }}
-              a {{ text-decoration: none; }}
-              code {{ background:#f3f3f3; padding:2px 4px; border-radius:4px; }}
-              .meta {{ color:#666; font-size: 0.9rem; }}
-            </style></head><body>{html}</body></html>
-            """
+            html_text = f"""<html><head><meta charset='utf-8'>
+            <style>body {{ font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }}</style>
+            </head><body>{html}</body></html>"""
         else:
-            # Fallback: wrap markdown as pre
             html_text = f"<html><body><pre>{md_text}</pre></body></html>"
         html_path = os.path.join(outdir, base + '.html')
         with open(html_path, 'w', encoding='utf-8') as f:
             f.write(html_text)
 
     if CONFIG.get('email', {}).get('enabled') and html_text:
-        subj = f"{title} — {start.strftime('%d %b %Y')}"
+        subj = f"{title} — {start.strftime('%d %b %Y')}"  # <-- uses start again
         send_email(subj, html_text, md_text, CONFIG['email'])
         print("[ok] Email sent")
 
