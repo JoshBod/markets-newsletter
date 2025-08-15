@@ -157,15 +157,19 @@ def fetch_rss(feed_url: str):
     fp = feedparser.parse(feed_url)
     items = []
     for e in fp.entries:
-        title = clean_text(getattr(e, 'title', ''))
-        link = getattr(e, 'link', '')
+        title   = clean_text(getattr(e, 'title', ''))
+        link    = getattr(e, 'link', '')
         summary = clean_text(getattr(e, 'summary', ''))
-        # time
+
+        # --- make published timezone-aware in UTC ---
         published = None
-        for attr in ['published_parsed','updated_parsed']:
+        for attr in ['published_parsed', 'updated_parsed']:
             if hasattr(e, attr) and getattr(e, attr):
-                published = datetime.fromtimestamp(time.mktime(getattr(e, attr)))
+                # feedparser gives struct_time in (usually) UTC
+                ts = calendar.timegm(getattr(e, attr))  # seconds since epoch, treat as UTC
+                published = datetime.fromtimestamp(ts, tz=tz.tzutc())
                 break
+
         items.append({"title": title, "link": link, "summary": summary, "published": published})
     return items
 
@@ -201,29 +205,25 @@ with open('config.yaml','r') as f:
 
 def main():
     tzname = CONFIG['output'].get('timezone', 'Europe/London')
-    start = now_tz(tzname)
-    lookback = start - timedelta(hours=CONFIG.get('lookback_hours', 24))
 
-    all_items = []
-    seen = set()
+    # Use UTC for comparisons
+    now_utc = datetime.now(tz.tzutc())
+    lookback_utc = now_utc - timedelta(hours=CONFIG.get('lookback_hours', 24))
+
+    all_items, seen = [], set()
 
     for feed in CONFIG.get('feeds', []):
         try:
             for it in fetch_rss(feed):
-                if it['published'] and it['published'] < lookback:
+                if it['published'] and it['published'] < lookback_utc:
                     continue
-                key = it['link'] or hashlib.md5((it['title']+it.get('summary','')).encode()).hexdigest()
+                key = it['link'] or hashlib.md5((it['title'] + it.get('summary','')).encode()).hexdigest()
                 if key in seen:
                     continue
                 seen.add(key)
                 s = score_item(it['title'], it.get('summary',''), it['link'], CONFIG['weights'])
                 bullets = summarize((it.get('summary') or it['title']))
-                all_items.append({
-                    **it,
-                    "score": s,
-                    "bullets": bullets,
-                    "min_top_score": CONFIG.get('min_top_score', 2.0),
-                })
+                all_items.append({**it, "score": s, "bullets": bullets, "min_top_score": CONFIG.get('min_top_score', 2.0)})
         except Exception as e:
             print(f"[warn] feed failed: {feed} — {e}")
 
