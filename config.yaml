@@ -56,6 +56,6 @@ email:
   smtp_host: smtp.gmail.com
   smtp_port: 587
   username: joshua.bodman0@gmail.com
-  password: app_password_here   # Use an app password, not your login
+  password: GMAIL_APP_PASSWORD   # Use an app password, not your login
   from_name: "AI Market Brief"
   to: ["yourname@gmail.com"]
