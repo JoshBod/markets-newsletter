@@ -1,0 +1,61 @@
+# === Sources ===
+# Add RSS feeds from your trusted sites (examples included). Prefer official feeds.
+feeds:
+  - https://www.reuters.com/finance/rss
+  - https://www.cnbc.com/id/100003114/device/rss/rss.html
+  - https://www.investing.com/rss/news_25.rss       # economic indicators
+  - https://www.marketwatch.com/feeds/topstories
+  - https://feeds.a.dj.com/rss/RSSMarketsMain.xml   # WSJ Markets (some links paywalled)
+  - https://www.bbc.co.uk/news/business/rss.xml     # UK business
+
+# Pull window in hours (articles newer than this are considered)
+lookback_hours: 24
+
+# Fetch full text of articles? If false, use RSS summaries (safer & faster).
+fetch_full_text: false
+
+# === X / Twitter (optional) ===
+# To include tweets, supply an API bearer token and handles.
+x_api:
+  enabled: false
+  bearer_token: "YOUR_X_API_BEARER_TOKEN"
+  handles:
+    - "bespokeinvest"
+    - "unusual_whales"
+    - "federalreserve"
+  max_tweets_per_handle: 5
+
+# === Heuristic scoring ===
+# Weighted keywords to bubble up likely market‑moving items
+weights:
+  sources: { wire: 2.0, mainstream: 1.0, blog: 0.5 }
+  keywords:
+    macro: [CPI, NFP, payrolls, inflation, deflation, GDP, PMI, ISM, rate hike, rate cut, BoE, ECB, Fed, FOMC]
+    earnings: [beat, miss, guidance, raises guidance, cuts guidance, EPS, revenue, outlook]
+    analyst: [upgrade, downgrade, price target]
+    mna: [acquire, acquisition, merger, buyout, stake, activist]
+    risk: [SEC, DOJ, antitrust, probe, investigation, sanction, lawsuit, recall]
+    energy: [OPEC, crude, inventory, refinery, shale]
+    crypto: [ETF approval, halving, staking, liquidation]
+
+# Minimum score to include in the "Top Movers" section
+min_top_score: 2.0
+max_items_per_section: 12
+
+# === Output ===
+output:
+  directory: ./out
+  include_html: true
+  include_markdown: true
+  filename_prefix: newsletter
+  timezone: Europe/London
+
+# === Email (optional) ===
+email:
+  enabled: false
+  smtp_host: smtp.gmail.com
+  smtp_port: 587
+  username: joshua.bodman0@gmail.com
+  password: app_password_here   # Use an app password, not your login
+  from_name: "AI Market Brief"
+  to: ["yourname@gmail.com"]
